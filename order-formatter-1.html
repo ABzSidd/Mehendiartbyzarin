@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Messenger Order Formatter</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --ink: #0f0e0d;
+    --cream: #f7f3ed;
+    --warm: #ede8e0;
+    --accent: #e8521a;
+    --accent2: #2d6a4f;
+    --muted: #8a8278;
+    --border: #d4cec6;
+    --card: #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--cream);
+    font-family: 'Syne', sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  .container { position: relative; z-index: 1; }
+
+  /* Header */
+  header {
+    border-bottom: 2px solid var(--ink);
+    background: var(--ink);
+    color: var(--cream);
+    padding: 1.25rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  header .logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  header .logo span {
+    color: var(--accent);
+  }
+
+  header .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    background: var(--accent);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* Layout */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    min-height: calc(100vh - 64px);
+  }
+
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    padding: 2rem;
+    border-right: 2px solid var(--border);
+  }
+
+  .panel:last-child { border-right: none; }
+
+  .panel-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .panel-label::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* Textarea */
+  textarea {
+    width: 100%;
+    min-height: 200px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    background: var(--card);
+    color: var(--ink);
+    resize: vertical;
+    transition: border-color 0.2s;
+    line-height: 1.6;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: var(--ink);
+  }
+
+  textarea::placeholder { color: var(--muted); }
+
+  /* Section titles */
+  .section-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  /* Combo Buttons */
+  .combo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .combo-btn {
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    padding: 0.85rem 1rem;
+    background: var(--card);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .combo-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--ink);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .combo-btn:hover { border-color: var(--ink); transform: translateY(-1px); }
+  .combo-btn:hover::after { opacity: 0.03; }
+
+  .combo-btn.selected {
+    border-color: var(--accent);
+    background: var(--ink);
+    color: var(--cream);
+    transform: translateY(-1px);
+    box-shadow: 4px 4px 0 var(--accent);
+  }
+
+  .combo-btn .combo-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .combo-btn .combo-price {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .combo-btn.selected .combo-price { color: #ff8c5a; }
+
+  /* Parsed preview */
+  .parsed-preview {
+    background: var(--warm);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .preview-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    font-size: 0.8rem;
+  }
+
+  .preview-key {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    min-width: 60px;
+    padding-top: 1px;
+    text-transform: uppercase;
+  }
+
+  .preview-val {
+    font-weight: 600;
+    color: var(--ink);
+    flex: 1;
+  }
+
+  .preview-val.empty { color: var(--muted); font-style: italic; font-weight: 400; }
+
+  /* Action buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.7rem 1.4rem;
+    border-radius: 4px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 2px solid transparent;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .btn-primary:hover {
+    background: #c9441a;
+    box-shadow: 3px 3px 0 var(--ink);
+    transform: translate(-1px, -1px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--border);
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
+    transform: translate(-1px, -1px);
+  }
+
+  .btn-success {
+    background: var(--accent2);
+    color: white;
+    border-color: var(--accent2);
+  }
+
+  .btn-success:hover {
+    background: #1f5038;
+    box-shadow: 3px 3px 0 var(--ink);
+    transform: translate(-1px, -1px);
+  }
+
+  /* Output area */
+  .output-box {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    padding: 1.25rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.8;
+    color: var(--ink);
+    min-height: 260px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .output-box.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-style: italic;
+    font-family: 'Syne', sans-serif;
+  }
+
+  /* Delivery badge */
+  .delivery-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 2px;
+    font-weight: 500;
+  }
+
+  .badge-dhaka { background: #d1fae5; color: #065f46; }
+  .badge-outside { background: #fee2e2; color: #991b1b; }
+
+  /* Price summary */
+  .price-summary {
+    background: var(--ink);
+    color: var(--cream);
+    border-radius: 4px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .price-item { display: flex; flex-direction: column; gap: 0.1rem; }
+  .price-item .label { font-size: 0.6rem; font-family: 'DM Mono', monospace; color: #8a8278; text-transform: uppercase; letter-spacing: 0.08em; }
+  .price-item .value { font-size: 1.05rem; font-weight: 700; }
+  .price-item .value.total { color: var(--accent); font-size: 1.3rem; }
+
+  .divider {
+    width: 1px;
+    height: 32px;
+    background: #2a2a2a;
+  }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--ink);
+    color: var(--cream);
+    padding: 0.75rem 1.25rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-left: 4px solid var(--accent2);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+  }
+
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  /* Editable fields */
+  .edit-field {
+    width: 100%;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    padding: 0.55rem 0.75rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    background: var(--card);
+    color: var(--ink);
+    transition: border-color 0.2s;
+  }
+  .edit-field:focus { outline: none; border-color: var(--ink); }
+
+  .field-group { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.75rem; }
+  .field-label { font-size: 0.68rem; font-family: 'DM Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .generate-bar { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 1rem; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div>
+      <div class="logo">Order<span>Fmt</span></div>
+    </div>
+    <span class="tag">Messenger Order Formatter</span>
+  </header>
+
+  <div class="main-grid">
+    <!-- LEFT PANEL -->
+    <div class="panel">
+      <div class="panel-label">Input & Configuration</div>
+
+      <div class="field-group">
+        <label class="field-label">Paste Customer Message</label>
+        <textarea id="rawInput" placeholder="নাম: রাহেলা বেগম&#10;01712345678&#10;ঠিকানা: মিরপুর ১০, ঢাকা&#10;Combo 2"></textarea>
+      </div>
+
+      <div class="section-title">Select Combo</div>
+      <div class="combo-grid" id="comboGrid">
+        <button class="combo-btn" data-combo="1" data-price="280">
+          <span class="combo-name">Combo 1</span>
+          <span class="combo-price">280৳</span>
+        </button>
+        <button class="combo-btn" data-combo="2" data-price="480">
+          <span class="combo-name">Combo 2</span>
+          <span class="combo-price">480৳</span>
+        </button>
+        <button class="combo-btn" data-combo="3" data-price="680">
+          <span class="combo-name">Combo 3</span>
+          <span class="combo-price">680৳</span>
+        </button>
+        <button class="combo-btn" data-combo="4" data-price="1080">
+          <span class="combo-name">Combo 4</span>
+          <span class="combo-price">1080৳</span>
+        </button>
+      </div>
+
+      <div class="section-title">Extracted & Editable Fields</div>
+      <div class="field-group">
+        <label class="field-label">Customer Name</label>
+        <input class="edit-field" id="fieldName" type="text" placeholder="Auto-detected…" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Phone Number</label>
+        <input class="edit-field" id="fieldPhone" type="text" placeholder="Auto-detected…" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Address</label>
+        <textarea class="edit-field" id="fieldAddress" rows="3" style="resize:vertical" placeholder="Auto-detected…"></textarea>
+      </div>
+
+      <div class="section-title">Delivery Zone</div>
+      <div id="deliveryBadge" style="margin-bottom:0.5rem"></div>
+
+      <div class="generate-bar">
+        <button class="btn btn-primary" id="generateBtn">⚡ Generate Message</button>
+        <button class="btn btn-secondary" id="clearBtn">✕ Clear All</button>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+      <div class="panel-label">Formatted Output</div>
+
+      <div class="price-summary" id="priceSummary" style="display:none; margin-bottom:1.25rem;">
+        <div class="price-item">
+          <span class="label">Product</span>
+          <span class="value" id="sumProduct">—</span>
+        </div>
+        <div class="divider"></div>
+        <div class="price-item">
+          <span class="label">Delivery</span>
+          <span class="value" id="sumDelivery">—</span>
+        </div>
+        <div class="divider"></div>
+        <div class="price-item">
+          <span class="label">Total</span>
+          <span class="value total" id="sumTotal">—</span>
+        </div>
+      </div>
+
+      <div id="outputBox" class="output-box empty">Output will appear here after you generate…</div>
+
+      <div class="generate-bar" style="margin-top:1rem;">
+        <button class="btn btn-success" id="copyBtn" style="display:none">📋 Copy Message</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast">✓ Copied to clipboard!</div>
+
+<script>
+// ─── Constants ───────────────────────────────────────────────────────────────
+const DHAKA_KEYWORDS = [
+  'dhaka','ঢাকা','mirpur','মিরপুর','uttara','উত্তরা',
+  'gulshan','গুলশান','banani','বনানী','dhanmondi','ধানমন্ডি',
+  'narayanganj','নারায়ণগঞ্জ','motijheel','মতিঝিল',
+  'mohammadpur','মোহাম্মদপুর','rampura','রামপুরা',
+  'badda','বাড্ডা','khilgaon','খিলগাঁও','demra','ডেমরা',
+  'jatrabari','যাত্রাবাড়ী','shyamoli','শ্যামলী',
+  'farmgate','ফার্মগেট','tejgaon','তেজগাঁও',
+  'paltan','পল্টন','old dhaka','পুরান ঢাকা','lalbagh','লালবাগ'
+];
+
+const COMBO_KEYWORDS = ['combo','কম্বো','cb','প্যাকেজ','package'];
+
+const BANGLA_DIGITS = { '০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9' };
+
+let selectedCombo = null;
+let generatedOutput = '';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function normalizeBanglaDigits(str) {
+  return str.replace(/[০১২৩৪৫৬৭৮৯]/g, d => BANGLA_DIGITS[d]);
+}
+
+function extractPhone(lines) {
+  for (const line of lines) {
+    const norm = normalizeBanglaDigits(line.replace(/\s/g,''));
+    const match = norm.match(/(?:\+88)?0[1-9]\d{9}/);
+    if (match) {
+      let num = match[0].replace(/^\+88/, '');
+      return num;
+    }
+  }
+  return '';
+}
+
+function isPhoneLine(line) {
+  const norm = normalizeBanglaDigits(line.replace(/[\s\-]/g,''));
+  return /(?:\+88)?0[1-9]\d{9}/.test(norm);
+}
+
+function isComboLine(line) {
+  const lower = line.toLowerCase();
+  return COMBO_KEYWORDS.some(k => lower.includes(k));
+}
+
+function extractComboFromText(text) {
+  const lower = text.toLowerCase();
+  const m = lower.match(/combo\s*([1-4])|([১২৩৪])\s*(?:নম্বর|নং|no\.?)?\s*combo/i);
+  if (m) {
+    const n = m[1] || m[2];
+    const d = normalizeBanglaDigits(n);
+    return parseInt(d);
+  }
+  // also match bangla "কম্বো ২" etc
+  const m2 = text.match(/(?:কম্বো|combo)\s*([১২৩৪1234])/i);
+  if (m2) return parseInt(normalizeBanglaDigits(m2[1]));
+  return null;
+}
+
+function isInDhaka(address) {
+  const lower = address.toLowerCase();
+  return DHAKA_KEYWORDS.some(k => lower.includes(k));
+}
+
+function cleanLabel(line) {
+  // remove labels like "নাম:", "name:", "ঠিকানা:", "phone:" etc
+  return line.replace(/^[^:：]+[:：]\s*/, '').trim();
+}
+
+function extractFields(raw) {
+  const lines = raw.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+
+  const phone = extractPhone(lines);
+  let name = '';
+  const addressLines = [];
+
+  // Detect combo in text
+  let detectedCombo = null;
+  for (const line of lines) {
+    const c = extractComboFromText(line);
+    if (c) { detectedCombo = c; break; }
+  }
+
+  const usedIndices = new Set();
+
+  // Mark phone lines
+  lines.forEach((line, i) => {
+    if (isPhoneLine(line)) usedIndices.add(i);
+  });
+
+  // Mark combo lines
+  lines.forEach((line, i) => {
+    if (isComboLine(line)) usedIndices.add(i);
+  });
+
+  // Name = first non-phone, non-combo line
+  for (let i = 0; i < lines.length; i++) {
+    if (!usedIndices.has(i)) {
+      let candidate = cleanLabel(lines[i]);
+      if (candidate && !isPhoneLine(candidate)) {
+        name = candidate;
+        usedIndices.add(i);
+        break;
+      }
+    }
+  }
+
+  // Address = remaining lines
+  for (let i = 0; i < lines.length; i++) {
+    if (!usedIndices.has(i)) {
+      addressLines.push(cleanLabel(lines[i]));
+    }
+  }
+
+  return { phone, name, address: addressLines.join(', '), detectedCombo };
+}
+
+function updateDeliveryBadge(address) {
+  const badge = document.getElementById('deliveryBadge');
+  if (!address.trim()) { badge.innerHTML = ''; return; }
+  if (isInDhaka(address)) {
+    badge.innerHTML = '<span class="delivery-badge badge-dhaka">📍 Dhaka Area — Delivery 70৳</span>';
+  } else {
+    badge.innerHTML = '<span class="delivery-badge badge-outside">🚚 Outside Dhaka — Delivery 130৳</span>';
+  }
+}
+
+// ─── Combo Selection ──────────────────────────────────────────────────────────
+document.querySelectorAll('.combo-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (selectedCombo === parseInt(btn.dataset.combo)) {
+      // deselect
+      selectedCombo = null;
+      btn.classList.remove('selected');
+    } else {
+      document.querySelectorAll('.combo-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedCombo = parseInt(btn.dataset.combo);
+    }
+  });
+});
+
+function selectComboBtn(n) {
+  document.querySelectorAll('.combo-btn').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.combo) === n);
+  });
+  selectedCombo = n;
+}
+
+// ─── Auto-parse on paste/input ───────────────────────────────────────────────
+document.getElementById('rawInput').addEventListener('input', () => {
+  const raw = document.getElementById('rawInput').value;
+  if (!raw.trim()) return;
+  const { phone, name, address, detectedCombo } = extractFields(raw);
+  document.getElementById('fieldName').value = name;
+  document.getElementById('fieldPhone').value = phone;
+  document.getElementById('fieldAddress').value = address;
+  updateDeliveryBadge(address);
+  if (detectedCombo && !selectedCombo) selectComboBtn(detectedCombo);
+});
+
+document.getElementById('fieldAddress').addEventListener('input', () => {
+  updateDeliveryBadge(document.getElementById('fieldAddress').value);
+});
+
+// ─── Generate ────────────────────────────────────────────────────────────────
+document.getElementById('generateBtn').addEventListener('click', () => {
+  const name = document.getElementById('fieldName').value.trim();
+  const phone = document.getElementById('fieldPhone').value.trim();
+  const address = document.getElementById('fieldAddress').value.trim();
+
+  if (!name && !phone && !address) {
+    alert('অনুগ্রহ করে প্রথমে অর্ডার মেসেজ পেস্ট করুন।');
+    return;
+  }
+
+  const comboPrices = { 1: 280, 2: 480, 3: 680, 4: 1080 };
+  const productPrice = selectedCombo ? comboPrices[selectedCombo] : 0;
+  const delivery = isInDhaka(address) ? 70 : 130;
+  const total = productPrice + delivery;
+
+  const comboLabel = selectedCombo ? `Combo ${selectedCombo}` : 'N/A';
+
+  const msg =
+`✅ অর্ডার কনফার্মেশন
+
+📌 প্রিয় ${name || 'গ্রাহক'},
+আপনার অর্ডারটি আমরা পেয়েছি। নিচে আপনার অর্ডারের বিবরণ:
+
+━━━━━━━━━━━━━━━━━━
+👤 নাম       : ${name || '—'}
+📞 ফোন      : ${phone || '—'}
+🏠 ঠিকানা   : ${address || '—'}
+━━━━━━━━━━━━━━━━━━
+🛍️ পণ্য      : ${comboLabel}
+💰 পণ্যমূল্য : ${productPrice}৳
+🚚 ডেলিভারি : ${delivery}৳
+━━━━━━━━━━━━━━━━━━
+💳 মোট মূল্য : ${total}৳
+━━━━━━━━━━━━━━━━━━
+
+✅ পণ্য ডেলিভারির সময় পেমেন্ট করুন।
+
+✅ প্রোডাক্ট ডেলিভারি ম্যান এর সামনে চেক করে নেবেন,ডেলিভারি ম্যান চলে আসার পর আর কোন অভিযোগ গ্রহণযোগ্য হবে না।
+
+🍃১-২ দিন সময় লাগবে ঢাকার মধ্যে পার্সেল পেতে।
+🍃২-৪ দিন সময় লাগবে ঢাকার বাহিরে।
+
+💌 Mehendiartbyzarin সাথে থাকবেন।
+ধন্যবাদ💖`;
+
+  generatedOutput = msg;
+
+  const box = document.getElementById('outputBox');
+  box.textContent = msg;
+  box.classList.remove('empty');
+
+  // Price summary
+  document.getElementById('priceSummary').style.display = 'flex';
+  document.getElementById('sumProduct').textContent = productPrice + '৳';
+  document.getElementById('sumDelivery').textContent = delivery + '৳';
+  document.getElementById('sumTotal').textContent = total + '৳';
+
+  document.getElementById('copyBtn').style.display = 'inline-flex';
+});
+
+// ─── Copy ────────────────────────────────────────────────────────────────────
+document.getElementById('copyBtn').addEventListener('click', () => {
+  if (!generatedOutput) return;
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = generatedOutput;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  } catch(e) {
+    navigator.clipboard && navigator.clipboard.writeText(generatedOutput).then(() => {
+      const toast = document.getElementById('toast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    });
+  }
+});
+
+// ─── Clear ───────────────────────────────────────────────────────────────────
+document.getElementById('clearBtn').addEventListener('click', () => {
+  document.getElementById('rawInput').value = '';
+  document.getElementById('fieldName').value = '';
+  document.getElementById('fieldPhone').value = '';
+  document.getElementById('fieldAddress').value = '';
+  document.querySelectorAll('.combo-btn').forEach(b => b.classList.remove('selected'));
+  selectedCombo = null;
+  generatedOutput = '';
+  document.getElementById('deliveryBadge').innerHTML = '';
+  const box = document.getElementById('outputBox');
+  box.textContent = 'Output will appear here after you generate…';
+  box.classList.add('empty');
+  document.getElementById('priceSummary').style.display = 'none';
+  document.getElementById('copyBtn').style.display = 'none';
+});
+</script>
+</body>
+</html>
